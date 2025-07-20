@@ -5,45 +5,77 @@ import StmtFSM::*;
 import FIFO::*;
 import GetPut::*;
 
+import "BDPI" function Action append_expression(Bit#(8) c);
+import "BDPI" function Action show_expression();
+import "BDPI" function Action reset_expression();
+import "BDPI" function Bit#(32) calculate_golden();
+
 module mkTestCalculator();
   // Instantiate the Calculator module
-  Calculator calc <- mkCalculator();
+  Calculator calc_ <- mkCalculator();
 
   // Input file handling
-  Reg#(Bool) file_opened <- mkReg(False);
-  Reg#(File) input_file  <- mkReg(InvalidFile);
+  Reg#(Bool) file_opened_ <- mkReg(False);
+  Reg#(File) input_file_  <- mkReg(InvalidFile);
 
-  // FSM for reading the answer
+  // Count for test cases
+  Reg#(UInt#(32)) test_case_count_ <- mkReg(0);
+
+  // FSM for reading the answer and comparing with the golden model
   FSM read_Answer <- mkFSM(seq
     action
-      let result = calc.resultOut.get();
-      $display($time(), " Answer: ", result, "\n\n");
+      // 1. Get the result from our hardware calculator
+      let result <- calc_.resultOut.get();
+      test_case_count_ <= test_case_count_ + 1;
+
+      // 2. Compute the golden result
+      Int#(32) golden_result = unpack(calculate_golden());
+
+      $display("==============================================");
+      $display("Test Cases: %d", test_case_count_ + 1);
+      show_expression();
+      reset_expression();
+      $display("DUT     result: %d", result);
+      $display("Golden  result: %d", golden_result);
+
+      // 3. Compare results
+      if (result == golden_result) begin
+        $display("Compare result: \033[32mPASS\033[0m");
+      end else begin
+        $display("Compare result: \033[31mFAIL\033[0m:");
+      end
+      $display("==============================================");
     endaction
   endseq);
 
-  rule send_input (file_opened);
-    int ch <- $fgetc(input_file);
+  rule send_input (file_opened_);
+    int ch <- $fgetc(input_file_);
 
     if (ch != -1) begin
       Bit#(8) c = truncate(pack(ch));
-      if (c != charToBits("\n")) calc.dataIn.put(c);
-      if (c == charToBits("=") ) read_Answer.start();
+
+      if (c != charToBits("\n")) begin
+        append_expression(c);
+        calc_.dataIn.put(c);
+
+        if (c == charToBits("=")) read_Answer.start();
+      end
     end else begin
-      $fclose(input_file);
+      $fclose(input_file_);
       $finish(0);
     end
   endrule
 
-  rule open_file (!file_opened);
-    File lfh <- $fopen("tests/test_input.txt", "r");
+  rule open_file (!file_opened_);
+    File lfh <- $fopen("tests/input.txt", "r");
 
     if (lfh == InvalidFile) begin
       $display("Error opening file\n");
       $finish(0);
     end
 
-    file_opened <= True;
-    input_file  <= lfh;
+    file_opened_ <= True;
+    input_file_  <= lfh;
   endrule
 endmodule
 

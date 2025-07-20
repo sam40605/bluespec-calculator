@@ -51,14 +51,14 @@ module mkCalculator(Calculator);
   function Stmt evaluate() = seq
     action
       val2_ <= values_.top(); values_.pop();
-      $display($time(), " Pop  value: ", values_.top());
+      $display($time, " Pop  value: ", values_.top());
     endaction
 
     action
       let val1 = values_.top(); values_.pop();
       let op   = ops_.top(); ops_.pop();
-      $display($time(), " Pop  value: ", values_.top());
-      $display($time(), " Pop  operator: '%c'", ops_.top());
+      $display($time, " Pop  value: ", values_.top());
+      $display($time, " Pop  operator: '%c'", ops_.top());
 
       Data_t res = case (op)
         charToBits("+"): return val1 + val2_;
@@ -69,7 +69,7 @@ module mkCalculator(Calculator);
       endcase;
 
       values_.push(res);
-      $display($time(), " Push value: ", res);
+      $display($time, " Push value: ", res);
     endaction
   endseq;
 
@@ -90,7 +90,7 @@ module mkCalculator(Calculator);
           values_.push(numberIn_);
           numberIn_ <= 0;      // Reset the number accumulator
           has_num_  <= False;  // Reset the flag
-          $display($time(), " Push value: ", numberIn_);
+          $display($time, " Push value: ", numberIn_);
 
           if (cin_ == charToBits(" ")) begin // If the character is a space, ignore it
             pending_char_.deq();
@@ -100,7 +100,7 @@ module mkCalculator(Calculator);
       endseq else if (cin_ == charToBits("(")) seq
 
         action // If the character is '(', push it onto the ops stack
-          $display($time(), " Push operator: '(' ");
+          $display($time, " Push operator: '(' ");
           ops_.push(cin_);
           pending_char_.deq();
         endaction
@@ -113,7 +113,7 @@ module mkCalculator(Calculator);
 
         action // Pop the opening parenthesis '('
           ops_.pop();
-          $display($time(), " Pop  operator: '%c'", ops_.top());
+          $display($time, " Pop  operator: '%c'", ops_.top());
           pending_char_.deq();
         endaction
 
