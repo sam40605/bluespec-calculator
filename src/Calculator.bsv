@@ -9,7 +9,7 @@ import StmtFSM::*;
 typedef Int#(32) Data_t;
 typedef 32       StackSize;
 
-function Bit#(8) charToBits(Char c) = fromInteger(charToInteger(c));
+function Bit#(8) charToBits(Char c) = fromInteger(charToInteger(c)); // Get the ASCII value of a character
 
 interface Calculator;
   interface Put#(Bit#(8)) dataIn;
@@ -77,12 +77,15 @@ module mkCalculator(Calculator);
   FSM process_expression_ <- mkFSM(seq
     while(pending_char_.notEmpty()) seq
       if (isDigit(cin_)) seq
+
         action // If the character is a digit, accumulate it into numberIn
           numberIn_ <= 10 * numberIn_ + extend(unpack(cin_ - charToBits("0")));
           has_num_  <= True;
           pending_char_.deq();
         endaction
+
       endseq else if (has_num_) seq
+
         action // If we have a complete number, push it onto the values stack
           values_.push(numberIn_);
           numberIn_ <= 0;      // Reset the number accumulator
@@ -93,13 +96,17 @@ module mkCalculator(Calculator);
             pending_char_.deq();
           end
         endaction
+
       endseq else if (cin_ == charToBits("(")) seq
+
         action // If the character is '(', push it onto the ops stack
           $display($time(), " Push operator: '(' ");
           ops_.push(cin_);
           pending_char_.deq();
         endaction
+
       endseq else if (cin_ == charToBits(")")) seq
+
         while (!ops_.empty() && op_ != charToBits("(")) seq
           evaluate();
         endseq
@@ -109,7 +116,9 @@ module mkCalculator(Calculator);
           $display($time(), " Pop  operator: '%c'", ops_.top());
           pending_char_.deq();
         endaction
+
       endseq else if (cin_ == charToBits("=")) seq
+
         while (!ops_.empty()) seq
           evaluate();
         endseq
@@ -119,7 +128,9 @@ module mkCalculator(Calculator);
           values_.pop();
           pending_char_.deq();
         endaction
+
       endseq else if (isOperator(cin_)) seq
+
         while (!ops_.empty() && precedence(op_) >= precedence(cin_)) seq
           evaluate();
         endseq
@@ -129,11 +140,9 @@ module mkCalculator(Calculator);
           ops_.push(cin_);
           pending_char_.deq();
         endaction
+
       endseq else seq
-        action
-          // $display($time(), " Ignoring '%c'", cin_);
-          pending_char_.deq();
-        endaction
+        pending_char_.deq(); // Ignore space and other characters
       endseq
     endseq
   endseq);
@@ -142,7 +151,7 @@ module mkCalculator(Calculator);
     op_ <= ops_.top();
   endrule
 
-  rule get_first;
+  rule get_first_char;
     cin_ <= pending_char_.first();
   endrule
 
