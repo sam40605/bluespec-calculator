@@ -1,1 +1,3 @@
 add_bluesim_executable(testCalculator mkTestCalculator TestCalculator.bsv LINK_LIBS Calculator)
+
+# add_bluesim_systemc_library(mkCalculator_systemc mkTestCalculator TestCalculator.bsv LINK_LIBS Calculator)
