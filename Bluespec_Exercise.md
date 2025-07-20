@@ -15,7 +15,7 @@ The input is an [infix expression](https://en.wikipedia.org/wiki/Infix_notation)
 1. **Numbers**
 
     Numbers are non-negative decimal integers. Examples:
-    
+
 
     | Number | Description                  |
     | ------ | ---------------------------- |
@@ -35,20 +35,20 @@ The input is an [infix expression](https://en.wikipedia.org/wiki/Infix_notation)
     | `*`      | Multiplication        |
     | `/`      | Division              |
     | `=`      | End of the expression |
-    
+
 3. **Parentheses**
 
     | Operator | Description         |
     | -------- | ------------------- |
     | `(`      | Opening parenthesis |
     | `)`      | Closing parenthesis |
-    
+
     **Order of operations**: The sub-expression enclosed by a pair of parentheses should be evaluated first. In the absence of parentheses, [certain precedence rules](https://en.wikipedia.org/wiki/Order_of_operations) determine the order of operations.
-    
+
 4. **White spaces**
-    
+
     White spaces (` `) should be ignored during the evaluation of the expression.
-    
+
 Here are some valid input expressions.
 
 * `1 + 1 =`
@@ -64,7 +64,7 @@ Output is the evaluation of the input expression. Examples:
 | `1 + 1 =`                  | `2`    |
 | `1 + ((2 - 3) + 45) * 6 =` | `265`  |
 | `6 / 5 + (43 - 21) * 0 =`  | `1`    |
-    
+
 ## Requirements
 
 ### Input interface
@@ -82,7 +82,7 @@ The evaluated result can be obtained at the output interface once the evaluation
 ### Functional behavior
 
 Your calculator should be able to tokenize, parse and evaluate the given input expression and output the result.
-    
+
 ### Testbench
 
 Write a testbench that reads `input.txt`, which stores a single input expression, and sent the serialized expression to the calculator byte by byte. Once the evaluation finishes, output the result to the console.
@@ -111,11 +111,11 @@ Present your work on 7/22. The presentation should cover:
 
 1. Debug your calculator without viewing the waveform
     - Use `$display`-based debugging methods.
-    
+
 2. Multiple inputs and automatic verification
     - One expression per line in the `input.txt`
     - The testbench calculates a golden value and compares it with the calculator's output
-    
+
 3. SystemC based testbench
     - Generate the SystemC model of the calculator and instantiate it in a `sc_main`
     - Write the testbench in the `sc_main`

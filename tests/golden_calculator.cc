@@ -7,11 +7,9 @@ static std::string expression_buffer;
 
 // Helper function to determine the precedence of an operator
 int precedence(char op) {
-  if (op == '+' || op == '-')
-    return 1;
-  if (op == '*' || op == '/')
-    return 2;
-  return 0; // For parentheses
+  if (op == '+' || op == '-') return 1;
+  if (op == '*' || op == '/') return 2;
+  return 0;  // For parentheses
 }
 
 // Helper function to apply an operator to two values (no error checking)
@@ -26,21 +24,21 @@ void evaluate(std::stack<int> &values, std::stack<char> &ops) {
   ops.pop();
 
   switch (op) {
-  case '+':
-    values.push(val1 + val2);
-    break;
-  case '-':
-    values.push(val1 - val2);
-    break;
-  case '*':
-    values.push(val1 * val2);
-    break;
-  case '/':
-    values.push(val1 / (val2 == 0 ? 1 : val2)); // Avoid division by zero
-    break;
-  default:
-    values.push(0);
-    break;
+    case '+':
+      values.push(val1 + val2);
+      break;
+    case '-':
+      values.push(val1 - val2);
+      break;
+    case '*':
+      values.push(val1 * val2);
+      break;
+    case '/':
+      values.push(val1 / (val2 == 0 ? 1 : val2));  // Avoid division by zero
+      break;
+    default:
+      values.push(0);
+      break;
   }
 }
 
@@ -71,8 +69,8 @@ int calculator(const std::string &expression) {
       while (!ops.empty() && ops.top() != '(') {
         evaluate(values, ops);
       }
-      ops.pop(); // Pop the opening parenthesis
-    } else {     // Operator
+      ops.pop();  // Pop the opening parenthesis
+    } else {      // Operator
       while (!ops.empty() && precedence(ops.top()) >= precedence(token)) {
         evaluate(values, ops);
       }
