@@ -12,7 +12,7 @@ int precedence(char op) {
   return 0;  // For parentheses
 }
 
-// Helper function to apply an operator to two values (no error checking)
+// Helper function to apply an operator to two values
 void evaluate(std::stack<int> &values, std::stack<char> &ops) {
   int val2 = values.top();
   values.pop();
@@ -42,7 +42,6 @@ void evaluate(std::stack<int> &values, std::stack<char> &ops) {
   }
 }
 
-// This is the internal C++ function that performs the calculation.
 int calculator(const std::string &expression) {
   std::stack<int> values;
   std::stack<char> ops;

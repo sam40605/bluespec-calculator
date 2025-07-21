@@ -26,7 +26,6 @@ module mkTestCalculator();
     action
       // 1. Get the result from our hardware calculator
       let result <- calc_.resultOut.get();
-      test_case_count_ <= test_case_count_ + 1;
 
       // 2. Compute the golden result
       Int#(32) golden_result = unpack(calculate_golden());
@@ -45,6 +44,8 @@ module mkTestCalculator();
         $display("Compare result: \033[31mFAIL\033[0m:");
       end
       $display("==============================================");
+
+      test_case_count_ <= test_case_count_ + 1;
     endaction
   endseq);
 
