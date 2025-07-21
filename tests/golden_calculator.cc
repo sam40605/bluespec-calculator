@@ -14,14 +14,20 @@ int precedence(char op) {
 
 // Helper function to apply an operator to two values
 void evaluate(std::stack<int> &values, std::stack<char> &ops) {
-  int val2 = values.top();
-  values.pop();
+  int val1 = 0, val2 = 0;
+  char op = '+';
 
-  int val1 = values.top();
-  values.pop();
+  if (values.size() >= 2) {
+    val2 = values.top();
+    values.pop();
+    val1 = values.top();
+    values.pop();
+  }
 
-  char op = ops.top();
-  ops.pop();
+  if (!ops.empty()) {
+    op = ops.top();
+    ops.pop();
+  }
 
   switch (op) {
     case '+':
@@ -68,8 +74,8 @@ int calculator(const std::string &expression) {
       while (!ops.empty() && ops.top() != '(') {
         evaluate(values, ops);
       }
-      ops.pop();  // Pop the opening parenthesis
-    } else {      // Operator
+      if (!ops.empty()) ops.pop();  // Pop the opening parenthesis
+    } else {                        // Operator
       while (!ops.empty() && precedence(ops.top()) >= precedence(token)) {
         evaluate(values, ops);
       }

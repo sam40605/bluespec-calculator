@@ -2,6 +2,7 @@ BasedOnStyle: Google
 Language: Cpp
 PointerAlignment: Right
 AllowShortLambdasOnASingleLine: Empty
+SortIncludes: Never
 ---
 BasedOnStyle: Google
 Language: Json

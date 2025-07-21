@@ -41,7 +41,7 @@ module mkTestCalculator();
       if (result == golden_result) begin
         $display("Compare result: \033[32mPASS\033[0m");
       end else begin
-        $display("Compare result: \033[31mFAIL\033[0m:");
+        $display("Compare result: \033[31mFAIL\033[0m");
       end
       $display("==============================================");
 

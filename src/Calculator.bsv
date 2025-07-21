@@ -7,7 +7,7 @@ import GetPut::*;
 import StmtFSM::*;
 
 typedef Int#(32) Data_t;
-typedef 32       StackSize;
+typedef 64       StackSize;
 
 function Bit#(8) charToBits(Char c) = fromInteger(charToInteger(c)); // Get the ASCII value of a character
 
@@ -25,12 +25,20 @@ module mkCalculator(Calculator);
   Stack#(Data_t)  values_ <- mkStack(valueOf(StackSize));
   Stack#(Bit#(8)) ops_    <- mkStack(valueOf(StackSize));
 
+  // To probe the stack's pop and push, using PulseWire to prevent deadlock
+  PulseWire ops_pushing_ <- mkPulseWire();
+  PulseWire ops_popping_ <- mkPulseWire();
+  PulseWire values_pushing_ <- mkPulseWire();
+  PulseWire values_popping_ <- mkPulseWire();
+  Wire#(Data_t) value_toPush_ <- mkWire();
+
   // Temporary registers/wire for calculation
   Wire#(Bit#(8)) cin_ <- mkDWire(charToBits(" "));
   Wire#(Bit#(8)) op_  <- mkDWire(charToBits(" "));
-  Reg#(Data_t)   numberIn_ <- mkReg(0);
-  Reg#(Bool)     has_num_  <- mkReg(False);
-  Reg#(Data_t)   val2_ <- mkReg(0);
+  Wire#(Data_t)  val_ <- mkDWire(0);
+
+  Reg#(Maybe#(Data_t)) numberIn_ <- mkReg(Invalid);
+  Reg#(Data_t) val2_ <- mkReg(0);
 
   // Helper functions
   function Bool isDigit(Bit#(8) ch);
@@ -48,28 +56,25 @@ module mkCalculator(Calculator);
   endfunction
 
   // Pops two values and an operator, performs the calculation, and pushes the result back
-  function Stmt evaluate() = seq
+  function Stmt eval() = seq
     action
-      val2_ <= values_.top(); values_.pop();
-      $display($time, " Pop  value: ", values_.top());
+      val2_ <= val_;
+      values_popping_.send();
     endaction
 
     action
-      let val1 = values_.top(); values_.pop();
-      let op   = ops_.top(); ops_.pop();
-      $display($time, " Pop  value: ", values_.top());
-      $display($time, " Pop  operator: '%c'", ops_.top());
+      values_popping_.send();
+      ops_popping_.send();
 
-      Data_t res = case (op)
-        charToBits("+"): return val1 + val2_;
-        charToBits("-"): return val1 - val2_;
-        charToBits("*"): return val1 * val2_;
-        charToBits("/"): return val1 / ( (val2_ == 0) ? (1) : (val2_) ); // Avoid division by zero
+      value_toPush_ <= case (op_)
+        charToBits("+"): return val_ + val2_;
+        charToBits("-"): return val_ - val2_;
+        charToBits("*"): return val_ * val2_;
+        charToBits("/"): return val_ / ( (val2_ == 0) ? (1) : (val2_) ); // Avoid division by zero
         default: return 0;
       endcase;
 
-      values_.push(res);
-      $display($time, " Push value: ", res);
+      values_pushing_.send();
     endaction
   endseq;
 
@@ -79,18 +84,16 @@ module mkCalculator(Calculator);
       if (isDigit(cin_)) seq
 
         action // If the character is a digit, accumulate it into numberIn
-          numberIn_ <= 10 * numberIn_ + extend(unpack(cin_ - charToBits("0")));
-          has_num_  <= True;
+          numberIn_ <= tagged Valid ( 10 * fromMaybe(0, numberIn_) + extend(unpack(cin_ - charToBits("0"))) );
           pending_char_.deq();
         endaction
 
-      endseq else if (has_num_) seq
+      endseq else if (isValid(numberIn_)) seq
 
         action // If we have a complete number, push it onto the values stack
-          values_.push(numberIn_);
-          numberIn_ <= 0;      // Reset the number accumulator
-          has_num_  <= False;  // Reset the flag
-          $display($time, " Push value: ", numberIn_);
+          value_toPush_ <= fromMaybe(0, numberIn_);
+          values_pushing_.send();
+          numberIn_ <= tagged Invalid;       // Reset the number accumulator
 
           if (cin_ == charToBits(" ")) begin // If the character is a space, ignore it
             pending_char_.deq();
@@ -100,44 +103,37 @@ module mkCalculator(Calculator);
       endseq else if (cin_ == charToBits("(")) seq
 
         action // If the character is '(', push it onto the ops stack
-          $display($time, " Push operator: '(' ");
-          ops_.push(cin_);
+          ops_pushing_.send();
           pending_char_.deq();
         endaction
 
       endseq else if (cin_ == charToBits(")")) seq
 
-        while (!ops_.empty() && op_ != charToBits("(")) seq
-          evaluate();
-        endseq
+        while (!ops_.empty() && op_ != charToBits("(")) eval();
 
         action // Pop the opening parenthesis '('
-          ops_.pop();
-          $display($time, " Pop  operator: '%c'", ops_.top());
+          ops_popping_.send();
           pending_char_.deq();
         endaction
 
       endseq else if (cin_ == charToBits("=")) seq
 
-        while (!ops_.empty()) seq
-          evaluate();
-        endseq
+        while (!ops_.empty()) eval();
 
         action // Move the final result to the output FIFO
-          result_.enq(values_.top());
-          values_.pop();
+          result_.enq(val_);
+          values_popping_.send();
           pending_char_.deq();
         endaction
 
+        while(!values_.empty()) values_popping_.send(); // Clear the values stack
+
       endseq else if (isOperator(cin_)) seq
 
-        while (!ops_.empty() && precedence(op_) >= precedence(cin_)) seq
-          evaluate();
-        endseq
+        while (!ops_.empty() && precedence(op_) >= precedence(cin_)) eval();
 
         action
-          $display($time, " Push operator: '%c'", cin_);
-          ops_.push(cin_);
+          ops_pushing_.send();
           pending_char_.deq();
         endaction
 
@@ -147,16 +143,40 @@ module mkCalculator(Calculator);
     endseq
   endseq);
 
-  rule get_first_op;
-    op_ <= ops_.top();
+  rule start_processing;
+    process_expression_.start();
   endrule
 
   rule get_first_char;
     cin_ <= pending_char_.first();
   endrule
 
-  rule start_processing;
-    process_expression_.start();
+  rule get_first_op;
+    op_ <= ops_.top();
+  endrule
+
+  rule pop_ops (ops_popping_);
+    ops_.pop();
+    $display($time, " Pop  operator: '%c'", ops_.top());
+  endrule
+
+  rule push_ops (ops_pushing_);
+    ops_.push(cin_);
+    $display($time, " Push operator: '%c'", cin_);
+  endrule
+
+  rule get_first_value;
+    val_ <= values_.top();
+  endrule
+
+  rule pop_values (values_popping_);
+    values_.pop();
+    $display($time, " Pop  value: ", values_.top());
+  endrule
+
+  rule push_values (values_pushing_);
+    values_.push(value_toPush_);
+    $display($time, " Push value: ", value_toPush_);
   endrule
 
   interface Put dataIn    = toPut(pending_char_);

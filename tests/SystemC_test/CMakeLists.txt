@@ -1,0 +1,5 @@
+add_bluesim_systemc_library(mkCalculatorTop_systemc mkCalculatorTop CalculatorTop.bsv
+  LINK_LIBS Calculator)
+
+add_executable(testCalculator_sc sc_main.cpp)
+target_link_libraries(testCalculator_sc systemc mkCalculatorTop_systemc golden_calculator)
