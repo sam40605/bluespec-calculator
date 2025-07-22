@@ -13,24 +13,20 @@ int precedence(char op) {
 }
 
 // Helper function to apply an operator to two values
-void evaluate(std::stack<int> &values, std::stack<char> &ops) {
+bool evaluate(std::stack<int> &values, std::stack<char> &ops) {
   int val1 = 0, val2 = 0;
   char op = ' ';
 
-  if (!values.empty()) {
-    val2 = values.top();
-    values.pop();
-  }
+  if (values.size() < 2 || ops.empty()) return false;
 
-  if (!values.empty()) {
-    val1 = values.top();
-    values.pop();
-  }
+  val2 = values.top();
+  values.pop();
 
-  if (!ops.empty()) {
-    op = ops.top();
-    ops.pop();
-  }
+  val1 = values.top();
+  values.pop();
+
+  op = ops.top();
+  ops.pop();
 
   switch (op) {
     case '+':
@@ -49,6 +45,8 @@ void evaluate(std::stack<int> &values, std::stack<char> &ops) {
       values.push(0);
       break;
   }
+
+  return true;
 }
 
 int calculator(const std::string &expression) {
@@ -75,19 +73,19 @@ int calculator(const std::string &expression) {
       ops.push(token);
     } else if (token == ')') {
       while (!ops.empty() && ops.top() != '(') {
-        evaluate(values, ops);
+        if (!evaluate(values, ops)) return -99999999;
       }
       if (!ops.empty()) ops.pop();  // Pop the opening parenthesis
     } else {                        // Operator
       while (!ops.empty() && precedence(ops.top()) >= precedence(token)) {
-        evaluate(values, ops);
+        if (!evaluate(values, ops)) return -99999999;
       }
       ops.push(token);
     }
   }
 
   while (!ops.empty()) {
-    evaluate(values, ops);
+    if (!evaluate(values, ops)) return -99999999;
   }
 
   return values.top();

@@ -21,6 +21,7 @@ int sc_main(int argc, char *argv[]) {
   sc_signal<bool> result_valid;
   sc_signal<bool> result_ack;
   sc_signal<sc_bv<32>> result;
+  sc_signal<bool> fault_expression;
 
   /**
    * Instantiate the Calculator module
@@ -37,6 +38,7 @@ int sc_main(int argc, char *argv[]) {
   Calculator.result_valid(result_valid);
   Calculator.result_ack(result_ack);
   Calculator.result(result);
+  Calculator.fault_expression(fault_expression);
 
   auto putData = [&](unsigned char ch) {
     while (RDY_putData == false) {
@@ -49,21 +51,26 @@ int sc_main(int argc, char *argv[]) {
     EN_putData = false;
   };
 
-  auto getResult = [&]() {
+  auto getResult = [&](int &result_value) {
     while (result_valid == false) {
       sc_start(10, SC_NS);
     }
 
-    int res = result.read().to_int();
+    result_value = result.read().to_int();
+    bool fault_exp = fault_expression;
+
     result_ack = true;
     sc_start(10, SC_NS);
     result_ack = false;
 
-    return res;
+    return fault_exp;
   };
 
-  auto compareResult = [&](int dut_res, int golden) {
-    if (dut_res == golden) {
+  auto compareResult = [&](bool fault_exp, int dut_res, int golden) {
+    if (fault_exp) {
+      std::cout << "Compare result: \033[31mInvalid Expression\033[0m"
+                << std::endl;
+    } else if (dut_res == golden) {
       std::cout << "Compare result: \033[32mPASS\033[0m" << std::endl;
     } else {
       std::cerr << "Compare result: \033[31mFAIL\033[0m" << std::endl;
@@ -85,13 +92,14 @@ int sc_main(int argc, char *argv[]) {
   std::string line;
   int test_case = 1;
   int result_value = 0;
+  bool fault_exp = false;
 
   while (std::getline(file, line)) {
     for (char ch : line) {
       putData(ch);
 
       if (ch == '=') {
-        result_value = getResult();
+        fault_exp = getResult(result_value);
         break;
       }
     }
@@ -102,7 +110,7 @@ int sc_main(int argc, char *argv[]) {
     std::cout << "Expression: \"" << line << "\"" << std::endl;
     std::cout << "Result    : " << result_value << std::endl;
     std::cout << "Expected  : " << golden << std::endl;
-    compareResult(result_value, golden);
+    compareResult(fault_exp, result_value, golden);
     std::cout << "==============================================" << std::endl;
   }
 

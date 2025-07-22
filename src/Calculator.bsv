@@ -13,13 +13,13 @@ function Bit#(8) charToBits(Char c) = fromInteger(charToInteger(c)); // Get the 
 
 interface Calculator;
   interface Put#(Bit#(8)) dataIn;
-  interface Get#(Data_t)  resultOut;
+  interface Get#(Maybe#(Data_t)) resultOut;
 endinterface
 
 module mkCalculator(Calculator);
   // FIFOs for input and output buffering
   FIFOF#(Bit#(8)) pending_char_ <- mkFIFOF();
-  FIFO#(Data_t)   result_       <- mkFIFO();
+  FIFO#(Maybe#(Data_t)) result_ <- mkFIFO();
 
   // Stacks for the operands and operators
   Stack#(Data_t)  values_ <- mkStack(valueOf(StackSize));
@@ -39,6 +39,7 @@ module mkCalculator(Calculator);
 
   Reg#(Maybe#(Data_t)) numberIn_ <- mkReg(Invalid);
   Reg#(Data_t) val2_ <- mkReg(0);
+  Reg#(Bool) fault_exp_ <- mkReg(False);
 
   // Helper functions
   function Bool isDigit(Bit#(8) ch);
@@ -47,6 +48,11 @@ module mkCalculator(Calculator);
 
   function Bool isOperator(Bit#(8) ch);
     return ch == charToBits("+") || ch == charToBits("-") || ch == charToBits("*") || ch == charToBits("/");
+  endfunction
+
+  function Bool invalidInput(Bit#(8) ch);
+    return ch != charToBits("(") && ch != charToBits(")") && !isDigit(ch) &&
+           ch != charToBits(" ") && ch != charToBits("=") && !isOperator(ch);
   endfunction
 
   function Bit#(2) precedence(Bit#(8) op);
@@ -63,6 +69,9 @@ module mkCalculator(Calculator);
     endaction
 
     action
+      values_popping_.send();
+      ops_popping_.send();
+
       value_toPush_ <= case (op_)
         charToBits("+"): return val_ + val2_;
         charToBits("-"): return val_ - val2_;
@@ -71,8 +80,6 @@ module mkCalculator(Calculator);
         default: return 0;
       endcase;
 
-      values_popping_.send();
-      ops_popping_.send();
       values_pushing_.send();
     endaction
   endseq;
@@ -120,12 +127,13 @@ module mkCalculator(Calculator);
         while (!ops_.empty()) eval();
 
         action // Move the final result to the output FIFO
-          result_.enq(val_);
+          result_.enq( (fault_exp_) ? (tagged Invalid) : (tagged Valid val_) );
           values_popping_.send();
           pending_char_.deq();
         endaction
 
         while(!values_.empty()) values_popping_.send(); // Clear the values stack
+        if (fault_exp_) fault_exp_ <= False;            // Reset the fault flag
 
       endseq else if (isOperator(cin_)) seq
 
@@ -154,6 +162,10 @@ module mkCalculator(Calculator);
     op_ <= ops_.top();
   endrule
 
+  rule get_first_value;
+    val_ <= values_.top();
+  endrule
+
   rule pop_ops (ops_popping_);
     ops_.pop();
     $display($time, " Pop  operator: '%c'", ops_.top());
@@ -164,10 +176,6 @@ module mkCalculator(Calculator);
     $display($time, " Push operator: '%c'", cin_);
   endrule
 
-  rule get_first_value;
-    val_ <= values_.top();
-  endrule
-
   rule pop_values (values_popping_);
     values_.pop();
     $display($time, " Pop  value: ", values_.top());
@@ -176,6 +184,11 @@ module mkCalculator(Calculator);
   rule push_values (values_pushing_);
     values_.push(value_toPush_);
     $display($time, " Push value: ", value_toPush_);
+  endrule
+
+  rule check_fault_expression (!fault_exp_); // Keep checking fault until the flag is set
+    fault_exp_ <= (ops_popping_    && ops_.empty()   ) || (ops_pushing_    && ops_.full()   ) ||
+                  (values_popping_ && values_.empty()) || (values_pushing_ && values_.full()) || invalidInput(cin_);
   endrule
 
   interface Put dataIn    = toPut(pending_char_);

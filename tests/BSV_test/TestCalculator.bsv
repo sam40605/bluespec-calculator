@@ -31,14 +31,16 @@ module mkTestCalculator();
       Int#(32) golden_result = unpack(calculate_golden());
 
       $display("==============================================");
-      $display("Test Cases: %d", test_case_count_ + 1);
+      $display("Test Cases: ", test_case_count_ + 1);
       show_expression();
       reset_expression();
-      $display("DUT     result: %d", result);
-      $display("Golden  result: %d", golden_result);
+      $display("DUT     result: ", fromMaybe(-99999999, result));
+      $display("Golden  result: ", golden_result);
 
       // 3. Compare results
-      if (result == golden_result) begin
+      if (!isValid(result)) begin
+        $display("Compare result: \033[31mInvalid Expression\033[0m");
+      end else if (fromMaybe(0, result) == golden_result) begin
         $display("Compare result: \033[32mPASS\033[0m");
       end else begin
         $display("Compare result: \033[31mFAIL\033[0m");
