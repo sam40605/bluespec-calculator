@@ -28,6 +28,8 @@ bool evaluate(std::stack<int64_t> &values, std::stack<char> &ops) {
   op = ops.top();
   ops.pop();
 
+  if (val2 == 0 && op == '/') return false;  // Handle division by zero
+
   switch (op) {
     case '+':
       values.push(val1 + val2);
@@ -39,7 +41,7 @@ bool evaluate(std::stack<int64_t> &values, std::stack<char> &ops) {
       values.push(val1 * val2);
       break;
     case '/':
-      values.push(val1 / (val2 == 0 ? 1 : val2));  // Avoid division by zero
+      values.push(val1 / val2);
       break;
     default:
       values.push(0);

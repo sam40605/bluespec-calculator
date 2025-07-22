@@ -47,6 +47,7 @@ module mkCalculator(Calculator);
   Reg#(Maybe#(Data_t)) numberIn_ <- mkReg(Invalid);
   Reg#(Data_t) val2_ <- mkReg(0);
   Reg#(Bool) fault_exp_ <- mkReg(False);
+  PulseWire divided_by_zero_ <- mkPulseWire();
 
   // Helper functions
   function Bool isDigit(Bit#(8) ch);
@@ -88,6 +89,7 @@ module mkCalculator(Calculator);
       endcase;
 
       values_pushing_.send();
+      if (op_ == charToBits("/") && val2_ == 0) divided_by_zero_.send();
     endaction
   endseq;
 
@@ -195,7 +197,8 @@ module mkCalculator(Calculator);
 
   rule check_fault_expression (!fault_exp_); // Keep checking fault until the flag is set
     fault_exp_ <= (ops_popping_    && ops_.empty()   ) || (ops_pushing_    && ops_.full()   ) ||
-                  (values_popping_ && values_.empty()) || (values_pushing_ && values_.full()) || invalidInput(cin_);
+                  (values_popping_ && values_.empty()) || (values_pushing_ && values_.full()) ||
+                  invalidInput(cin_) || divided_by_zero_;
   endrule
 
   interface Put dataIn    = toPut(pending_char_);
