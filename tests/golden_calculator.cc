@@ -13,8 +13,8 @@ int precedence(char op) {
 }
 
 // Helper function to apply an operator to two values
-bool evaluate(std::stack<int> &values, std::stack<char> &ops) {
-  int val1 = 0, val2 = 0;
+bool evaluate(std::stack<int64_t> &values, std::stack<char> &ops) {
+  int64_t val1 = 0, val2 = 0;
   char op = ' ';
 
   if (values.size() < 2 || ops.empty()) return false;
@@ -49,8 +49,8 @@ bool evaluate(std::stack<int> &values, std::stack<char> &ops) {
   return true;
 }
 
-int calculator(const std::string &expression) {
-  std::stack<int> values;
+int64_t calculator(const std::string &expression) {
+  std::stack<int64_t> values;
   std::stack<char> ops;
 
   for (int i = 0; i < expression.length(); ++i) {
@@ -62,7 +62,7 @@ int calculator(const std::string &expression) {
     }
 
     if (isdigit(token)) {
-      int num = 0;
+      int64_t num = 0;
       while (i < expression.length() && isdigit(expression[i])) {
         num = (num * 10) + (expression[i] - '0');
         i++;
@@ -99,4 +99,4 @@ extern "C" void show_expression() {
 
 extern "C" void reset_expression() { expression_buffer.clear(); }
 
-extern "C" int calculate_golden() { return calculator(expression_buffer); }
+extern "C" int64_t calculate_golden() { return calculator(expression_buffer); }

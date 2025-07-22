@@ -5,7 +5,11 @@
 #include "systemc.h"
 #include "mkCalculatorTop_systemc.h"
 
-int calculator(const std::string &expression);
+#ifndef DATA_WIDTH
+#define DATA_WIDTH 32
+#endif
+
+int64_t calculator(const std::string &expression);
 
 int sc_main(int argc, char *argv[]) {
   /**
@@ -20,7 +24,7 @@ int sc_main(int argc, char *argv[]) {
 
   sc_signal<bool> result_valid;
   sc_signal<bool> result_ack;
-  sc_signal<sc_bv<32>> result;
+  sc_signal<sc_bv<DATA_WIDTH>> result;
   sc_signal<bool> fault_expression;
 
   /**
@@ -51,12 +55,12 @@ int sc_main(int argc, char *argv[]) {
     EN_putData = false;
   };
 
-  auto getResult = [&](int &result_value) {
+  auto getResult = [&](int64_t &result_value) {
     while (result_valid == false) {
       sc_start(10, SC_NS);
     }
 
-    result_value = result.read().to_int();
+    result_value = result.read().to_int64();
     bool fault_exp = fault_expression;
 
     result_ack = true;
@@ -66,8 +70,8 @@ int sc_main(int argc, char *argv[]) {
     return fault_exp;
   };
 
-  auto compareResult = [&](bool fault_exp, int dut_res, int golden) {
-    if (fault_exp) {
+  auto compareResult = [&](bool fault_exp, int64_t dut_res, int64_t golden) {
+    if (fault_exp && golden == -99999999) {
       std::cout << "Compare result: \033[31mInvalid Expression\033[0m"
                 << std::endl;
     } else if (dut_res == golden) {
@@ -79,7 +83,7 @@ int sc_main(int argc, char *argv[]) {
 
   // Reset the DUT
   rst_n = 0;
-  sc_start(30, SC_NS);
+  sc_start(20, SC_NS);
   rst_n = 1;
 
   // Open the input file
@@ -91,7 +95,7 @@ int sc_main(int argc, char *argv[]) {
 
   std::string line;
   int test_case = 1;
-  int result_value = 0;
+  int64_t result_value = 0;
   bool fault_exp = false;
 
   while (std::getline(file, line)) {
@@ -104,7 +108,7 @@ int sc_main(int argc, char *argv[]) {
       }
     }
 
-    int golden = calculator(line);
+    int64_t golden = calculator(line);
     std::cout << "==============================================" << std::endl;
     std::cout << "Test Case : " << test_case++ << std::endl;
     std::cout << "Expression: \"" << line << "\"" << std::endl;

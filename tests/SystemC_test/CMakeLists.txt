@@ -2,4 +2,5 @@ add_bluesim_systemc_library(mkCalculatorTop_systemc mkCalculatorTop CalculatorTo
   LINK_LIBS Calculator)
 
 add_executable(testCalculator_sc sc_main.cpp)
+target_compile_definitions(testCalculator_sc PRIVATE DATA_WIDTH=${DATA_WIDTH})
 target_link_libraries(testCalculator_sc systemc mkCalculatorTop_systemc golden_calculator)

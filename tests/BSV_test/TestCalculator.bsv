@@ -8,7 +8,7 @@ import GetPut::*;
 import "BDPI" function Action append_expression(Bit#(8) c);
 import "BDPI" function Action show_expression();
 import "BDPI" function Action reset_expression();
-import "BDPI" function Bit#(32) calculate_golden();
+import "BDPI" function Bit#(64) calculate_golden();
 
 module mkTestCalculator();
   // Instantiate the Calculator module
@@ -28,19 +28,19 @@ module mkTestCalculator();
       let result <- calc_.resultOut.get();
 
       // 2. Compute the golden result
-      Int#(32) golden_result = unpack(calculate_golden());
+      Int#(64) golden_result = unpack(calculate_golden());
 
       $display("==============================================");
       $display("Test Cases: ", test_case_count_ + 1);
       show_expression();
       reset_expression();
-      $display("DUT     result: ", fromMaybe(-99999999, result));
-      $display("Golden  result: ", golden_result);
+      $display("Result  : ", fromMaybe(-99999999, result));
+      $display("Expected: ", golden_result);
 
       // 3. Compare results
-      if (!isValid(result)) begin
+      if (!isValid(result) && golden_result == -99999999) begin
         $display("Compare result: \033[31mInvalid Expression\033[0m");
-      end else if (fromMaybe(0, result) == golden_result) begin
+      end else if (signExtend(fromMaybe(-99999999, result)) == golden_result) begin
         $display("Compare result: \033[32mPASS\033[0m");
       end else begin
         $display("Compare result: \033[31mFAIL\033[0m");

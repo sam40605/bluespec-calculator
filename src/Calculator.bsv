@@ -6,8 +6,15 @@ import Stack::*;
 import GetPut::*;
 import StmtFSM::*;
 
-typedef Int#(32) Data_t;
-typedef 64       StackSize;
+`ifndef DATA_WIDTH
+`define DATA_WIDTH 32
+`endif
+
+`ifndef STACK_SIZE
+`define STACK_SIZE 32
+`endif
+
+typedef Int#(`DATA_WIDTH) Data_t;
 
 function Bit#(8) charToBits(Char c) = fromInteger(charToInteger(c)); // Get the ASCII value of a character
 
@@ -22,8 +29,8 @@ module mkCalculator(Calculator);
   FIFO#(Maybe#(Data_t)) result_ <- mkFIFO();
 
   // Stacks for the operands and operators
-  Stack#(Data_t)  values_ <- mkStack(valueOf(StackSize));
-  Stack#(Bit#(8)) ops_    <- mkStack(valueOf(StackSize));
+  Stack#(Data_t)  values_ <- mkStack(`STACK_SIZE);
+  Stack#(Bit#(8)) ops_    <- mkStack(`STACK_SIZE);
 
   // To probe the stack's pop and push, using PulseWire to prevent deadlock
   PulseWire ops_pushing_ <- mkPulseWire();
