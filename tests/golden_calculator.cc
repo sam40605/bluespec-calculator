@@ -15,11 +15,14 @@ int precedence(char op) {
 // Helper function to apply an operator to two values
 void evaluate(std::stack<int> &values, std::stack<char> &ops) {
   int val1 = 0, val2 = 0;
-  char op = '+';
+  char op = ' ';
 
-  if (values.size() >= 2) {
+  if (!values.empty()) {
     val2 = values.top();
     values.pop();
+  }
+
+  if (!values.empty()) {
     val1 = values.top();
     values.pop();
   }

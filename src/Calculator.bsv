@@ -63,9 +63,6 @@ module mkCalculator(Calculator);
     endaction
 
     action
-      values_popping_.send();
-      ops_popping_.send();
-
       value_toPush_ <= case (op_)
         charToBits("+"): return val_ + val2_;
         charToBits("-"): return val_ - val2_;
@@ -74,6 +71,8 @@ module mkCalculator(Calculator);
         default: return 0;
       endcase;
 
+      values_popping_.send();
+      ops_popping_.send();
       values_pushing_.send();
     endaction
   endseq;
@@ -143,7 +142,7 @@ module mkCalculator(Calculator);
     endseq
   endseq);
 
-  rule start_processing;
+  rule start_processing (pending_char_.notEmpty());
     process_expression_.start();
   endrule
 
